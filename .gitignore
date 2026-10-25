@@ -1,0 +1,4 @@
+node_modules/
+.env
+fixmycar.db*
+/public/uploads/

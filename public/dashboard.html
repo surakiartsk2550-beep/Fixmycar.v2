@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>FIXMYCAR ┃ DASHBOARD</title>
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auth.js" defer></script>
+    <script src="dashboard.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://kit.fontawesome.com/bb1b83cbaa.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light p-2 site-navbar">
+        <a class="navbar-brand d-flex align-items-center" href="home.html">
+            <img src="img/logo.png" alt="">
+            <span class="ml-3">FIX MY CAR</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#siteNavigation"
+                aria-controls="siteNavigation" aria-expanded="false" aria-label="เปิดเมนูนำทาง">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="siteNavigation">
+            <ul class="navbar-nav ml-auto align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link" href="home.html"><i class="fa-solid fa-house mr-2"></i>หน้าหลัก</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="service.html"><i class="fa-solid fa-screwdriver-wrench mr-2"></i>เซอร์วิส</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="work.html"><i class="fa-solid fa-star-half-stroke mr-2"></i>ผลงาน</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contactus.html"><i class="fa-solid fa-headset mr-2"></i>ติดต่อเรา</a>
+                </li>
+                <li id="adminNavItem" class="nav-item">
+                    <a class="nav-link active" href="dashboard.html"><i class="fa-solid fa-gauge-high mr-2"></i>Dashboard</a>
+                </li>
+                <li class="nav-item ml-lg-3">
+                    <a id="authButton" href="login.html" class="btn-login">เข้าสู่ระบบ</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="dashboard-shell container-fluid">
+        <main class="dashboard-container">
+            <section id="overviewPanel" class="dashboard-panel" aria-labelledby="overviewHeading">
+                <h1 id="overviewHeading">Overview</h1>
+                <p class="dashboard-subtitle">ภาพรวมระบบ FIXMYCAR</p>
+                <div class="dashboard-metrics">
+                    <section class="dashboard-card" aria-labelledby="registeredUsersLabel">
+                        <div class="dashboard-card-icon"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                            <p id="registeredUsersLabel">ผู้ใช้ที่ลงทะเบียน</p>
+                            <strong id="registeredUsers" aria-live="polite">กำลังโหลด...</strong>
+                        </div>
+                    </section>
+                    <section class="dashboard-card" aria-labelledby="mechanicCountLabel">
+                        <div class="dashboard-card-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                        <div>
+                            <p id="mechanicCountLabel">ช่างในระบบทั้งหมด</p>
+                            <strong id="mechanicCount" aria-live="polite">กำลังโหลด...</strong>
+                        </div>
+                    </section>
+                    <section class="dashboard-card dashboard-status-card" aria-labelledby="googleMapsStatusLabel">
+                        <div class="dashboard-card-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div>
+                            <p id="googleMapsStatusLabel">Google Maps API</p>
+                            <strong id="googleMapsStatus" class="dashboard-service-status status-checking" aria-live="polite">กำลังตรวจสอบ...</strong>
+                        </div>
+                    </section>
+                    <section class="dashboard-card dashboard-status-card" aria-labelledby="otpStatusLabel">
+                        <div class="dashboard-card-icon"><i class="fa-solid fa-message"></i></div>
+                        <div>
+                            <p id="otpStatusLabel">OTP API (Twilio Verify)</p>
+                            <strong id="otpStatus" class="dashboard-service-status status-checking" aria-live="polite">กำลังตรวจสอบ...</strong>
+                        </div>
+                    </section>
+                </div>
+                <section class="review-overview" aria-labelledby="reviewOverviewHeading">
+                    <div class="review-overview-heading">
+                        <div>
+                            <h2 id="reviewOverviewHeading">รีวิวจากผู้ใช้งาน</h2>
+                            <p>สรุปจำนวนรีวิวทั้งหมดและหมวดหมู่บริการ</p>
+                        </div>
+                        <div class="review-total">
+                            <span>รีวิวทั้งหมด</span>
+                            <strong id="totalReviewCount" aria-live="polite">กำลังโหลด...</strong>
+                        </div>
+                    </div>
+                    <div id="reviewCategoryCounts" class="review-category-counts" aria-live="polite">
+                        กำลังโหลดสรุปรีวิว...
+                    </div>
+                </section>
+                <p id="dashboardStatus" class="dashboard-status" role="status"></p>
+                <section class="banner-management" aria-labelledby="bannerHeading">
+                    <div class="mechanic-list-toolbar">
+                        <div>
+                            <h2 id="bannerHeading" class="mechanic-list-heading">จัดการ Banner</h2>
+                            <p class="dashboard-subtitle">เพิ่ม แก้ไข หรือลบภาพแบนเนอร์ที่หน้าแรก</p>
+                        </div>
+                    </div>
+                    <form id="bannerForm" class="mechanic-form">
+                        <label class="mechanic-form-wide">รูปภาพ (URL HTTPS หรือพาธภายในเว็บไซต์)
+                            <input name="image" required maxlength="500" placeholder="img/banner-1.jpg">
+                        </label>
+                        <label class="mechanic-form-wide">คำอธิบายรูปภาพ (alt)
+                            <input name="altText" maxlength="200" placeholder="คำอธิบายภาพ">
+                        </label>
+                        <div class="mechanic-form-actions mechanic-form-wide">
+                            <button class="dashboard-action-button" type="submit">เพิ่ม Banner</button>
+                            <button id="cancelBannerEdit" class="mechanic-cancel-button" type="button" hidden>ยกเลิก</button>
+                        </div>
+                    </form>
+                    <p id="bannerStatus" class="dashboard-status" role="status"></p>
+                    <div id="bannerList" class="mechanic-list" aria-live="polite">กำลังโหลด Banner...</div>
+                </section>
+            </section>
+
+            <section id="mechanicPanel" class="dashboard-panel" aria-labelledby="mechanicHeading" hidden>
+                <h1 id="mechanicHeading">Manage Mechanic</h1>
+                <p class="dashboard-subtitle">เพิ่ม แก้ไข หรือลบข้อมูลช่างในระบบ</p>
+                <form id="mechanicForm" class="mechanic-form">
+                    <label>ชื่อช่าง (ภาษาอังกฤษ) <input name="nameEn" required maxlength="120"></label>
+                    <label>ชื่อช่าง (ภาษาไทย) <input name="nameTh" maxlength="120"></label>
+                    <label>เบอร์โทรศัพท์ <input name="phone" maxlength="40"></label>
+                    <label>Line <input name="lineId" maxlength="120"></label>
+                    <label>Facebook <input name="facebook" maxlength="160"></label>
+                    <label>ตำแหน่งร้าน <input name="shopLocation" maxlength="200"></label>
+                    <label>คะแนนดาว (0-5) <input name="rating" type="number" min="0" max="5" step="1" value="0" required></label>
+                    <label>จำนวนรีวิว (rating-text) <input name="ratingCount" type="number" min="0" max="2147483647" step="1" value="0" required></label>
+                    <label>ละติจูด <input name="lat" type="number" step="any" min="-90" max="90" required></label>
+                    <label>ลองจิจูด <input name="lng" type="number" step="any" min="-180" max="180" required></label>
+                    <label class="mechanic-form-wide">รูปภาพ (URL HTTPS หรือพาธภายในเว็บไซต์)
+                        <input name="image" maxlength="500" placeholder="imgmechanic/error.png">
+                    </label>
+                    <fieldset class="mechanic-categories mechanic-form-wide">
+                        <legend>ประเภทบริการ</legend>
+                        <label><input type="checkbox" name="categories" value="repair"> ช่างซ่อม</label>
+                        <label><input type="checkbox" name="categories" value="tirerepair"> ช่างปะยาง</label>
+                        <label><input type="checkbox" name="categories" value="carwash"> ล้างภายใน/ภายนอก</label>
+                        <label><input type="checkbox" name="categories" value="oilchange"> ถ่ายน้ำมันเครื่อง</label>
+                        <label><input type="checkbox" name="categories" value="battery"> เปลี่ยนแบต</label>
+                        <label><input type="checkbox" name="categories" value="carcheck"> เช็คสภาพรถ</label>
+                    </fieldset>
+                    <fieldset class="mechanic-shop-fieldset mechanic-form-wide">
+                        <legend>หน้าร้าน</legend>
+                        <div class="mechanic-shop-options">
+                            <label class="mechanic-shop-option">
+                                <input type="radio" name="hasShop" value="true">
+                                <span>มีหน้าร้าน</span>
+                            </label>
+                            <label class="mechanic-shop-option">
+                                <input type="radio" name="hasShop" value="false" checked>
+                                <span>ไม่มีหน้าร้าน</span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="mechanic-form-actions">
+                        <button class="dashboard-action-button" type="submit">เพิ่มช่าง</button>
+                        <button id="cancelMechanicEdit" class="mechanic-cancel-button" type="button" hidden>ยกเลิก</button>
+                    </div>
+                </form>
+                <p id="mechanicStatus" class="dashboard-status" role="status"></p>
+                <div class="mechanic-list-toolbar">
+                    <h2 class="mechanic-list-heading">รายชื่อช่าง</h2>
+                    <label class="mechanic-search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input id="mechanicSearch" type="search" placeholder="ค้นหาชื่อช่าง" aria-label="ค้นหาชื่อช่าง">
+                    </label>
+                </div>
+                <div id="mechanicList" class="mechanic-list" aria-live="polite">กำลังโหลดข้อมูลช่าง...</div>
+            </section>
+
+            <section id="workPanel" class="dashboard-panel" aria-labelledby="workHeading" hidden>
+                <h1 id="workHeading">Manage Work</h1>
+                <p class="dashboard-subtitle">เพิ่ม แก้ไข หรือลบตัวอย่างผลงานก่อนและหลังซ่อม</p>
+                <form id="workForm" class="mechanic-form">
+                    <label class="mechanic-form-wide">ชื่องาน <input name="title" required maxlength="100" placeholder="เช่น ล้างห้องเครื่อง"></label>
+                    <label>รูปก่อนซ่อม (URL HTTPS หรือพาธภายในเว็บไซต์)
+                        <input name="beforeImage" required maxlength="500" placeholder="imgwork/Engine-before.jpg">
+                    </label>
+                    <label>รูปหลังซ่อม (URL HTTPS หรือพาธภายในเว็บไซต์)
+                        <input name="afterImage" required maxlength="500" placeholder="imgwork/Engine-after.jpg">
+                    </label>
+                    <p class="dashboard-work-help mechanic-form-wide">รองรับ URL HTTPS หรือพาธรูปภาพในโฟลเดอร์ img, imgwork หรือ uploads</p>
+                    <div class="mechanic-form-actions mechanic-form-wide">
+                        <button class="dashboard-action-button" type="submit">เพิ่มผลงาน</button>
+                        <button id="cancelWorkEdit" class="mechanic-cancel-button" type="button" hidden>ยกเลิก</button>
+                    </div>
+                </form>
+                <p id="workStatus" class="dashboard-status" role="status"></p>
+                <div class="mechanic-list-toolbar">
+                    <h2 class="mechanic-list-heading">ตัวอย่างผลงาน</h2>
+                </div>
+                <div id="workList" class="mechanic-list" aria-live="polite">กำลังโหลดผลงาน...</div>
+                <section class="dashboard-review-management" aria-labelledby="manageReviewsHeading">
+                    <div class="mechanic-list-toolbar">
+                        <div>
+                            <h2 id="manageReviewsHeading" class="mechanic-list-heading">จัดการรีวิว</h2>
+                            <p class="dashboard-subtitle">เพิ่ม แก้ไข หรือลบรีวิวที่แสดงในหน้า Work</p>
+                        </div>
+                    </div>
+                    <form id="adminReviewForm" class="mechanic-form">
+                        <label>ชื่อผู้รีวิว <input name="name" required maxlength="35"></label>
+                        <label>คะแนน
+                            <select name="rating" required>
+                                <option value="5">5 ดาว</option>
+                                <option value="4">4 ดาว</option>
+                                <option value="3">3 ดาว</option>
+                                <option value="2">2 ดาว</option>
+                                <option value="1">1 ดาว</option>
+                            </select>
+                        </label>
+                        <label>หมวดหมู่บริการ
+                            <select name="category">
+                                <option value="">ไม่ระบุ</option>
+                                <option value="repair">ช่างซ่อม</option>
+                                <option value="tirerepair">ช่างปะยาง</option>
+                                <option value="carwash">ล้างภายใน/ภายนอก</option>
+                                <option value="oilchange">ถ่ายน้ำมันเครื่อง</option>
+                                <option value="battery">เปลี่ยนแบต</option>
+                                <option value="carcheck">เช็คสภาพรถ</option>
+                            </select>
+                        </label>
+                        <label class="mechanic-form-wide">ความคิดเห็น
+                            <textarea name="review" rows="3" required maxlength="200"></textarea>
+                        </label>
+                        <label>รูปโปรไฟล์ (URL HTTPS หรือพาธภายในเว็บไซต์)
+                            <input name="profileImage" maxlength="500" placeholder="/uploads/profile.jpg">
+                        </label>
+                        <label>รูปประกอบรีวิว (URL HTTPS หรือพาธภายในเว็บไซต์)
+                            <input name="photo" maxlength="500" placeholder="/uploads/review.jpg">
+                        </label>
+                        <p class="dashboard-work-help mechanic-form-wide">เว้นช่องรูปไว้ได้ หรือใส่ URL HTTPS/พาธใน img, imgwork หรือ uploads</p>
+                        <div class="mechanic-form-actions mechanic-form-wide">
+                            <button class="dashboard-action-button" type="submit">เพิ่มรีวิว</button>
+                            <button id="cancelReviewEdit" class="mechanic-cancel-button" type="button" hidden>ยกเลิก</button>
+                        </div>
+                    </form>
+                    <p id="adminReviewStatus" class="dashboard-status" role="status"></p>
+                    <div class="mechanic-list-toolbar">
+                        <h3 class="mechanic-list-heading">รีวิวทั้งหมด</h3>
+                    </div>
+                    <div id="adminReviewList" class="mechanic-list" aria-live="polite">กำลังโหลดรีวิว...</div>
+                </section>
+            </section>
+        </main>
+
+        <aside class="dashboard-sidebar">
+            <p class="dashboard-sidebar-title">เมนูจัดการ</p>
+            <nav aria-label="เมนู Dashboard">
+                <button class="dashboard-nav-link active" type="button" data-panel="overviewPanel" aria-current="page">
+                    <i class="fa-solid fa-chart-pie"></i> Overview
+                </button>
+                <button class="dashboard-nav-link" type="button" data-panel="mechanicPanel">
+                    <i class="fa-solid fa-screwdriver-wrench"></i> Manage Mechanic
+                </button>
+                <button class="dashboard-nav-link" type="button" data-panel="workPanel">
+                    <i class="fa-solid fa-images"></i> Manage Work
+                </button>
+            </nav>
+        </aside>
+    </div>
+</body>
+</html>

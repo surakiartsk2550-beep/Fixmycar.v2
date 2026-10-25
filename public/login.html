@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>FIXMYCAR ┃ LOGIN</title>
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://kit.fontawesome.com/bb1b83cbaa.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="login.css">
+    <script>
+        let verificationId = null;
+        let countdownTimer = null;
+        let sending = false;
+
+        function cleanPhone(value) {
+            return value.replace(/\D/g, '');
+        }
+
+        function normalizePhone(value) {
+            const digits = cleanPhone(value);
+            if (digits.startsWith('0')) return '+66' + digits.slice(1);
+            if (/^66\d{9}$/.test(digits) || /^1\d{10}$/.test(digits)) return '+' + digits;
+            if (/^\d{10}$/.test(digits)) return '+1' + digits;
+            return digits;
+        }
+
+        function displayPhone(value) {
+            const digits = cleanPhone(value);
+            if (digits.length === 10) {
+                return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+            }
+            return value;
+        }
+
+        function setStatus(message, isError = false) {
+            const el = document.getElementById('statusMessage');
+            el.textContent = message || '';
+            el.style.color = isError ? '#dc3545' : '#555';
+        }
+
+        async function requestOtp() {
+            if (sending) return;
+
+            const rawPhone = document.getElementById('inputPhone').value;
+            const phone = normalizePhone(rawPhone);
+            const digits = cleanPhone(rawPhone);
+
+            if (!/^0\d{9}$/.test(digits) && !/^66\d{9}$/.test(digits) && !/^\d{10}$/.test(digits) && !/^1\d{10}$/.test(digits)) {
+                alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+                return;
+            }
+
+            sending = true;
+            const button = document.querySelector('.next-button');
+            button.disabled = true;
+            button.textContent = 'กำลังส่ง OTP...';
+            setStatus('');
+
+            try {
+                const response = await fetch('/api/auth/request-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'ไม่สามารถส่ง OTP ได้');
+                }
+
+                verificationId = data.verificationId || null;
+
+                document.getElementById('showPhone').textContent = displayPhone(rawPhone);
+                document.getElementById('deliveryLabel').textContent =
+                    data.mode === 'development' ? 'เบอร์ทดสอบ' : 'ส่ง SMS ไปที่เบอร์';
+                document.getElementById('phoneStep').style.display = 'none';
+                document.getElementById('otpStep').style.display = 'block';
+                setReturnButtonForOtp(true);
+                document.querySelector('.otp-inputs input').focus();
+
+                // Ref นี้เป็นของหน้าจอเท่านั้น ไม่ใช่ OTP และไม่ใช้แทนการตรวจสอบจากเซิร์ฟเวอร์
+                generateRef();
+                startCountdown();
+                setStatus(data.mode === 'development'
+                    ? 'โหมดทดสอบ: ใช้ OTP ที่กำหนดไว้สำหรับเบอร์นี้'
+                    : 'ส่งรหัส OTP ไปยังโทรศัพท์ของคุณแล้ว');
+            } catch (error) {
+                alert(error.message);
+                setStatus(error.message, true);
+            } finally {
+                sending = false;
+                button.disabled = false;
+                button.textContent = 'กดถัดไป';
+            }
+        }
+
+        function generateRef() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let ref = '';
+            for (let i = 0; i < 5; i++) {
+                ref += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('refCode').textContent = ref;
+        }
+
+        function startCountdown() {
+            const resend = document.getElementById('resendLink');
+            let seconds = 59;
+            clearInterval(countdownTimer);
+            resend.style.pointerEvents = 'none';
+            resend.textContent = 'ส่งรหัสอีกครั้งใน (' + seconds + ' วินาที)';
+
+            countdownTimer = setInterval(function () {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(countdownTimer);
+                    resend.textContent = 'ส่งรหัสอีกครั้ง';
+                    resend.style.pointerEvents = 'auto';
+                    return;
+                }
+                resend.textContent = 'ส่งรหัสอีกครั้งใน (' + seconds + ' วินาที)';
+            }, 1000);
+        }
+
+        async function resendOtp(event) {
+            event.preventDefault();
+            if (sending) return;
+            await requestOtp();
+        }
+
+        async function verifyOtp() {
+            const otp = Array.from(document.querySelectorAll('.otp-inputs input'))
+                .map(input => input.value)
+                .join('');
+
+            if (otp.length !== 6) {
+                setStatus('กรุณากรอก OTP ให้ครบ 6 หลัก', true);
+                return;
+            }
+
+            const button = document.getElementById('verifyButton');
+            button.disabled = true;
+            button.textContent = 'กำลังตรวจสอบ...';
+            setStatus('');
+
+            try {
+                const response = await fetch('/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verificationId, otp })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'OTP ไม่ถูกต้อง');
+                }
+
+                setStatus('เข้าสู่ระบบสำเร็จ กำลังเข้าสู่เกม...');
+                window.location.href = data.redirect || '/home.html';
+            } catch (error) {
+                setStatus(error.message, true);
+                alert(error.message);
+                clearOtpInputs();
+            } finally {
+                button.disabled = false;
+                button.textContent = 'ยืนยัน OTP';
+            }
+        }
+
+        function clearOtpInputs() {
+            document.querySelectorAll('.otp-inputs input').forEach(input => input.value = '');
+            document.querySelector('.otp-inputs input').focus();
+        }
+
+        function setReturnButtonForOtp(isOtpStep) {
+            const button = document.getElementById('loginReturnButton');
+            const icon = document.createElement('i');
+            const label = document.createElement('span');
+            icon.setAttribute('aria-hidden', 'true');
+            icon.className = isOtpStep ? 'fa-solid fa-arrow-left' : 'fa-solid fa-house';
+            label.textContent = isOtpStep ? 'ย้อนกลับ' : 'กลับหน้าหลัก';
+            button.replaceChildren(icon, label);
+        }
+
+        function returnToPhoneStep(event) {
+            if (document.getElementById('otpStep').style.display === 'none') return;
+
+            event.preventDefault();
+            clearInterval(countdownTimer);
+            countdownTimer = null;
+            verificationId = null;
+            document.getElementById('otpStep').style.display = 'none';
+            document.getElementById('phoneStep').style.display = 'block';
+            document.getElementById('resendLink').textContent = 'ส่งรหัสอีกครั้งใน (59 วินาที)';
+            document.getElementById('resendLink').style.pointerEvents = 'none';
+            document.querySelectorAll('.otp-inputs input').forEach(input => input.value = '');
+            setStatus('');
+            setReturnButtonForOtp(false);
+            document.getElementById('inputPhone').focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('loginReturnButton').addEventListener('click', returnToPhoneStep);
+            const otpInputs = document.querySelectorAll('.otp-inputs input');
+
+            otpInputs.forEach((input, index) => {
+                input.addEventListener('input', function () {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 1);
+                    if (this.value && index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+
+                    const isFull = Array.from(otpInputs).every(i => i.value !== '');
+                    if (isFull) verifyOtp();
+                });
+
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                    if (e.key === 'Enter') verifyOtp();
+                });
+            });
+
+            document.getElementById('inputPhone').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') requestOtp();
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-page">
+            <a class="home-return-button" id="loginReturnButton" href="home.html">
+                <i class="fa-solid fa-house" aria-hidden="true"></i>
+                <span>กลับหน้าหลัก</span>
+            </a>
+            <img src="img/duckduck.gif" alt="duckduck" width="300" height="300">
+            <h1>กรุณาใส่เบอร์มือถือเพื่อเข้าสู่ระบบ</h1>
+
+            <div id="phoneStep">
+                <div class="phone-input">
+                    <input type="text" id="inputPhone" placeholder="เบอร์มือถือ"
+                           inputmode="numeric" maxlength="12" required autofocus
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(\d{3})(\d{0,3})(\d{0,4})/, '$1-$2-$3').replace(/-+$/, '')">
+                </div>
+                <button type="button" class="next-button" onclick="requestOtp()">กดถัดไป</button>
+                <p class="terms-text">เมื่อดำเนินการต่อ แสดงว่าคุณยอมรับ<u>ข้อกำหนดการใช้งาน</u> และ<u>นโยบายความเป็นส่วนตัว</u>ของ FIXMYCAR</p>
+            </div>
+
+            <div id="otpStep" style="display: none;">
+                <div class="otp-phone">
+                    <span id="deliveryLabel">ส่ง SMS ไปที่เบอร์</span>
+                    <strong id="showPhone"></strong>
+                </div>
+
+                <div class="otp-ref">
+                    (Ref. <span id="refCode">-----</span>)
+                </div>
+
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" inputmode="numeric" autofocus>
+                    <input type="text" maxlength="1" inputmode="numeric">
+                    <input type="text" maxlength="1" inputmode="numeric">
+                    <input type="text" maxlength="1" inputmode="numeric">
+                    <input type="text" maxlength="1" inputmode="numeric">
+                    <input type="text" maxlength="1" inputmode="numeric">
+                </div>
+
+                <button type="button" id="verifyButton" class="next-button" onclick="verifyOtp()">ยืนยัน OTP</button>
+                <a href="#" class="resend" id="resendLink" onclick="resendOtp(event)">ส่งรหัสอีกครั้งใน (59 วินาที)</a>
+                <p id="statusMessage" style="margin-top:15px;text-align:center;min-height:24px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-img">
+        <img src="img/lo.png" alt="">
+    </div>
+</body>
+</html>

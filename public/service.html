@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FIXMYCAR ┃ SERVICE</title>
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auth.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://kit.fontawesome.com/bb1b83cbaa.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="service.css">
+    <meta name="google-maps-api-key" content="AIzaSyA-_gJMRzQGzkRju8SCRjdRcEVPkjs9O3M">
+    <script>
+        const GOOGLE_MAPS_API_KEY = document.querySelector('meta[name="google-maps-api-key"]').content;
+
+        $(function () {
+            const $input = $('#searchmechanic');
+            let $cards = $('.mechanic');
+            const $container = $('.mechanic-container');
+
+            const serviceCategories = {
+                repair: ['peerayut', 'wichai', 'weerachai', 'somchai', 'pakorn', 'phichit'],   // ช่างซ่อม
+                tirerepair: ['peerayut','narin', 'pongsak', 'kittipong', 'pakorn', 'wichai', 'sup', ],  // ล้างภายใน/ภายนอก
+                oilchange: ['peerayut','krit', 'phichit', 'manop', 'pakorn', 'rattanachai','chaiwat'],   // ถ่ายน้ำมันเครื่อง
+                battery: ['peerayut','thanawat', 'sittichai', 'narong', 'jirawat', 'teerawat', 'somchai'],   // เปลี่ยนแบต
+                carcheck: ['peerayut','anan', 'teerawat', 'chanon', 'weerachai', 'somchai', 'phichit', 'achai'],   // ช่างปะย
+                carwash: ['peerayut','chaiwat', 'supachai', 'apichat', 'rattanachai', 'kittipong'],   // เช็คสภาพรถ
+            };
+
+            const serviceNames = {
+                repair:     'ช่างซ่อม',
+                tirerepair: 'ช่างปะยาง',
+                carwash:    'ล้างภายใน/ภายนอก',
+                oilchange:  'ถ่ายน้ำมันเครื่อง',
+                battery:    'เปลี่ยนแบต',
+                carcheck:   'เช็คสภาพรถ'
+            };
+
+            let keyword = '';
+            let shopFilter = 'all';
+            let serviceFilter = 'all';
+
+            const $empty = $('<p class="no-result">ไม่พบช่างที่ค้นหา</p>').hide();
+            $container.append($empty);
+
+            const shopText = { 'shop': 'มีหน้าร้าน', 'no-shop': 'ไม่มีหน้าร้าน' };
+            $('.shop-badge').each(function () {
+                const text = shopText[$(this).attr('data-shop')];
+                if (text) $(this).text(text);
+            });
+
+            function applyFilters() {
+                let found = 0;
+                $cards.each(function () {
+                    const nameEn = $(this).find('.mechanic-name').text().toLowerCase();
+                    const nameTh = $(this).find('.mechanic-name-th').text().toLowerCase();
+                    const nameMatch = nameEn.includes(keyword) || nameTh.includes(keyword);
+
+                    const shopId = $(this).find('.shop-badge').attr('data-shop');
+                    const shopMatch = shopFilter === 'all' || shopId === shopFilter;
+
+                    const serviceMatch = serviceFilter === 'all' ||
+                        ($(this).data('categories') || []).includes(serviceFilter);
+
+                    const show = nameMatch && shopMatch && serviceMatch;
+                    $(this).toggle(show);
+                    if (show) found++;
+                });
+                $empty.toggle(found === 0);
+            }
+
+            function renderMechanics(mechanics) {
+                $container.find('.mechanic').remove();
+                mechanics.forEach(function (mechanic) {
+                    const mechanicId = mechanic.legacyId || 'mechanic-' + mechanic.id;
+                    const categories = mechanic.categories.length
+                        ? mechanic.categories
+                        : Object.keys(serviceCategories).filter(function (category) {
+                            return serviceCategories[category].includes(mechanic.legacyId);
+                        });
+                    const $card = $('<div class="mechanic"></div>')
+                        .attr('data-lat', mechanic.lat)
+                        .attr('data-lng', mechanic.lng)
+                        .data('categories', categories);
+                    const $imageWrap = $('<div class="mechanic-img"></div>');
+                    const $image = $('<img alt="">')
+                        .attr('src', mechanic.image || 'imgmechanic/error.png')
+                        .on('error', function () {
+                            if (this.getAttribute('src') !== 'imgmechanic/error.png') {
+                                this.setAttribute('src', 'imgmechanic/error.png');
+                            }
+                        });
+                    $imageWrap.append($image);
+                    $imageWrap.append('<i class="fa-regular fa-bookmark mechanic-bookmark"></i>');
+                    $imageWrap.append('<span class="mechanic-distance">ไม่พบข้อมูล</span>');
+
+                    const $rating = $('<div class="mechanic-rating"><span class="stars"></span></div>');
+                    for (let i = 0; i < Math.max(0, Math.min(5, Number(mechanic.rating))); i++) {
+                        $rating.find('.stars').append('<i class="fa-solid fa-star"></i>');
+                    }
+                    $rating.append($('<span class="rating-text"></span>')
+                        .text((mechanic.rating || 0) + ' (' + (mechanic.ratingCount || 0) + ')'));
+                    $rating.append($('<span class="shop-badge"></span>')
+                        .attr('data-shop', mechanic.hasShop ? 'shop' : 'no-shop')
+                        .text(mechanic.hasShop ? 'มีหน้าร้าน' : 'ไม่มีหน้าร้าน'));
+
+                    const $name = $('<h3 class="mechanic-name"></h3>')
+                        .attr('id', mechanicId).text(mechanic.nameEn);
+                    $card.append($imageWrap, $rating, $name);
+                    $card.append($('<p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th"></span></p>')
+                        .find('.mechanic-name-th').text(mechanic.nameTh || '-').end());
+                    [
+                        ['เบอร์โทร : ', mechanic.phone],
+                        ['Line : ', mechanic.lineId],
+                        ['Facebook : ', mechanic.facebook],
+                        ['ตำแหน่งร้าน : ', mechanic.shopLocation]
+                    ].forEach(function (item) {
+                        $card.append($('<p class="mechanic-info"></p>').text(item[0] + (item[1] || '-')));
+                    });
+                    const tags = categories.map(function (category) { return serviceNames[category]; });
+                    $card.append($('<p class="mechanic-info">TAG: <span class="tag-mechanic"></span></p>')
+                        .find('.tag-mechanic').text(tags.join(', ')).end());
+                    $card.append('<button class="mechanic-btn"><i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง</button>');
+                    $container.append($card);
+                });
+                $cards = $container.find('.mechanic');
+                applyFilters();
+            }
+
+            fetch('/api/mechanics')
+                .then(function (response) {
+                    if (!response.ok) throw new Error('โหลดข้อมูลช่างไม่สำเร็จ');
+                    return response.json();
+                })
+                .then(function (data) {
+                    renderMechanics(data.mechanics);
+                })
+                .catch(function (error) {
+                    console.error(error);
+                    $container.find('.mechanic').remove();
+                    $cards = $();
+                    $empty.text('โหลดข้อมูลช่างไม่สำเร็จ กรุณาลองใหม่').show();
+                });
+
+            $('#searchForm').on('submit', function (e) {
+                e.preventDefault();
+                keyword = $input.val().trim().toLowerCase();
+                applyFilters();
+            });
+
+            $('#ddShop').next('.dropdown-menu').find('.dropdown-item').on('click', function (e) {
+                e.preventDefault();
+                shopFilter = $(this).data('shop');
+                $('#ddShop span').text($(this).text());
+                applyFilters();
+            });
+
+            $('#ddService').next('.dropdown-menu').find('.dropdown-item').on('click', function (e) {
+                e.preventDefault();
+                serviceFilter = $(this).data('service');
+                $('#ddService span').text($(this).text());
+                applyFilters();
+            });
+
+            const RMUTT = { lat: 14.0370, lng: 100.7270 };
+
+            const $modal    = $('#locModal');
+            const $mapMsg   = $('#locMapMsg');
+            const $status   = $('#locStatus');
+            const $confirm  = $('#locConfirm');
+
+            let map = null;
+            let marker = null;
+            let infoWindow = null;
+            let currentPos = null;
+            let confirmedPos = null;
+            let mapsPromise = null;
+            let mapsApiUnavailable = false;
+
+            const pinSvg =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">' +
+                '<path d="M20 0C9 0 0 8.8 0 19.7 0 34 20 52 20 52s20-18 20-32.3C40 8.8 31 0 20 0z" fill="#e8590c"/>' +
+                '<circle cx="20" cy="19" r="8" fill="#fff"/></svg>';
+            const pinIcon = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg);
+
+            function setStatus(text, isError) {
+                $status.text(text || '').toggleClass('error', !!isError);
+            }
+
+            function showMapMessage(text) {
+                $mapMsg.text(text).addClass('show');
+            }
+
+            function markMapsApiUnavailable() {
+                mapsApiUnavailable = true;
+                $cards.find('.mechanic-distance').text('ไม่พบข้อมูล');
+            }
+
+            function loadGoogleMaps() {
+                if (window.google && google.maps) return Promise.resolve();
+                if (mapsPromise) return mapsPromise;
+
+                mapsApiUnavailable = false;
+                mapsPromise = new Promise(function (resolve, reject) {
+                    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY') {
+                        reject(new Error('no-key'));
+                        return;
+                    }
+                    window.__gmapsReady = resolve;
+                    const s = document.createElement('script');
+                    s.src = 'https://maps.googleapis.com/maps/api/js?key=' +
+                            encodeURIComponent(GOOGLE_MAPS_API_KEY) +
+                            '&callback=__gmapsReady&language=th&region=TH';
+                    s.async = true;
+                    s.onerror = function () { reject(new Error('load-failed')); };
+                    document.head.appendChild(s);
+                });
+                mapsPromise.catch(function () { mapsPromise = null; });
+                return mapsPromise;
+            }
+
+            window.gm_authFailure = function () {
+                markMapsApiUnavailable();
+                showMapMessage('API key ใช้ไม่ได้ ตรวจสอบการเปิดใช้ Maps JavaScript API และข้อจำกัดของ key');
+            };
+
+            function getBrowserPosition() {
+                return new Promise(function (resolve, reject) {
+                    if (!navigator.geolocation) {
+                        reject(new Error('unsupported'));
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                        function (p) { resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+                        reject,
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                });
+            }
+
+            function movePin(pos, recenter) {
+                currentPos = pos;
+                $confirm.prop('disabled', false);
+                if (!map) return;
+                marker.setPosition(pos);
+                if (recenter) map.panTo(pos);
+            }
+
+            function initMap(center) {
+                map = new google.maps.Map(document.getElementById('locMap'), {
+                    center: center,
+                    zoom: 16,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                    zoomControl: true,
+                    clickableIcons: false,
+                    gestureHandling: 'greedy'
+                });
+
+                marker = new google.maps.Marker({
+                    map: map,
+                    position: center,
+                    draggable: true,
+                    icon: {
+                        url: pinIcon,
+                        scaledSize: new google.maps.Size(34, 44),
+                        anchor: new google.maps.Point(17, 44)
+                    }
+                });
+
+                infoWindow = new google.maps.InfoWindow({
+                    content: '<div class="loc-bubble">ตำแหน่งของฉัน</div>',
+                    disableAutoPan: true
+                });
+                infoWindow.open({ map: map, anchor: marker });
+
+                marker.addListener('dragend', function (e) {
+                    movePin({ lat: e.latLng.lat(), lng: e.latLng.lng() }, false);
+                    setStatus('');
+                });
+                map.addListener('click', function (e) {
+                    movePin({ lat: e.latLng.lat(), lng: e.latLng.lng() }, false);
+                    setStatus('');
+                });
+            }
+
+            function distanceMeters(lat1, lng1, lat2, lng2) {
+                const R = 6371000, rad = Math.PI / 180;
+                const a = Math.sin((lat2 - lat1) * rad / 2) ** 2 +
+                        Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+                        Math.sin((lng2 - lng1) * rad / 2) ** 2;
+                return 2 * R * Math.asin(Math.sqrt(a));
+            }
+
+            function formatDistance(m) {
+                return m < 1000 ? m.toFixed(1) + ' M' : (m / 1000).toFixed(1) + ' KM';
+            }
+
+            function updateDistances(pos) {
+
+                $cards.each(function () {
+                    const lat = parseFloat($(this).data('lat'));
+                    const lng = parseFloat($(this).data('lng'));
+                    let d = Infinity; 
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        d = distanceMeters(pos.lat, pos.lng, lat, lng);
+                        if (!mapsApiUnavailable) {
+                            $(this).find('.mechanic-distance').text(formatDistance(d));
+                        }
+                    }
+                    $(this).data('distance', d);
+                });
+
+                const sorted = $cards.toArray().sort(function (a, b) {
+                    return $(a).data('distance') - $(b).data('distance');
+                });
+                $container.append(sorted);
+                $container.append($empty); 
+            }
+
+            function openModal() {
+                $modal.addClass('open');
+                $('body').css('overflow', 'hidden');
+                $mapMsg.removeClass('show');
+
+                loadGoogleMaps().then(function () {
+                    const start = currentPos || confirmedPos || RMUTT;
+                    if (!map) {
+                        initMap(start);
+                    } else {
+                        google.maps.event.trigger(map, 'resize');
+                        marker.setPosition(start);
+                        map.setCenter(start);
+                    }
+                    movePin(start, true);
+                    setStatus('ลากหมุดเพื่อปรับ หรือกดปุ่มเป้าหมายเพื่อใช้ตำแหน่งปัจจุบัน');
+                }).catch(function (err) {
+                    markMapsApiUnavailable();
+                    showMapMessage(
+                        err && err.message === 'no-key'
+                            ? 'ยังไม่ได้ตั้งค่า GOOGLE_MAPS_API_KEY ใน service.html'
+                            : 'โหลด Google Maps ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตและ API key'
+                    );
+                    setStatus('');
+                });
+            }
+
+            function closeModal() {
+                $modal.removeClass('open');
+                $('body').css('overflow', '');
+            }
+
+            $('.gps').on('click', function (event) {
+                event.preventDefault();
+                window.FixMyCarAuth.requireAuthenticated(openModal, 'กรุณาเข้าสู่ระบบก่อนใช้ตำแหน่งของฉัน');
+            });
+            $('#locClose').on('click', closeModal);
+
+            $('#locRecenter').on('click', function () {
+                setStatus('กำลังค้นหาตำแหน่งของคุณ...');
+                getBrowserPosition().then(function (pos) {
+                    movePin(pos, true);
+                    setStatus('พบตำแหน่งของคุณแล้ว ลากหมุดเพื่อปรับตำแหน่งได้');
+                }).catch(function () {
+                    setStatus('หาตำแหน่งอัตโนมัติไม่ได้ ตรวจสอบการอนุญาตตำแหน่งในเบราว์เซอร์', true);
+                });
+            });
+
+            $confirm.on('click', function () {
+                if (!currentPos) return;
+                confirmedPos = currentPos;
+                updateDistances(confirmedPos); 
+                closeModal();
+            });
+
+            $modal.on('click', function (e) {
+                if (e.target === this) closeModal();
+            });
+            $(document).on('keydown', function (e) {
+                if (e.key === 'Escape' && $modal.hasClass('open')) closeModal();
+            });
+
+            getBrowserPosition().then(function (pos) {
+                confirmedPos = pos;
+                currentPos = pos;
+                updateDistances(pos);
+            }).catch(function () {
+                updateDistances(RMUTT);
+            });
+
+            $container.on('click', '.mechanic-btn', function () {
+                const $card = $(this).closest('.mechanic');
+                const lat = parseFloat($card.data('lat'));
+                const lng = parseFloat($card.data('lng'));
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                let url = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng;
+                if (confirmedPos) {
+                    url += '&origin=' + confirmedPos.lat + ',' + confirmedPos.lng;
+                }
+                window.open(url, '_blank', 'noopener');
+            });
+        });
+    </script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light p-2 site-navbar">
+        <a class="navbar-brand d-flex align-items-center" href="home.html">
+            <img src="img/logo.png" alt="">
+            <span class="ml-3">FIX MY CAR</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#siteNavigation"
+                aria-controls="siteNavigation" aria-expanded="false" aria-label="เปิดเมนูนำทาง">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="siteNavigation">
+            <ul class="navbar-nav ml-auto align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link" href="home.html"><i class="fa-solid fa-house mr-2"></i>หน้าหลัก</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="service.html"><i class="fa-solid fa-screwdriver-wrench mr-2"></i>เซอร์วิส</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="work.html"><i class="fa-solid fa-star-half-stroke mr-2"></i>ผลงาน</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contactus.html"><i class="fa-solid fa-headset mr-2"></i>ติดต่อเรา</a>
+                </li>
+                <li id="adminNavItem" class="nav-item d-none">
+                    <a class="nav-link" href="dashboard.html"><i class="fa-solid fa-gauge-high mr-2"></i>Dashboard</a>
+                </li>
+                <li class="nav-item ml-lg-3">
+                    <a id="authButton" href="login.html" class="btn-login">เข้าสู่ระบบ</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="service-container">
+        <div class="service-bar">
+            <button class="gps" type="button"><i class="fa-solid fa-location-dot"></i> ตำแหน่งของฉัน</button>
+            <form class="search-box" id="searchForm">
+                <input id="searchmechanic" type="text" placeholder="ค้นหา" autocomplete="off">
+                <button type="submit" id="searchBtn">ค้นหา</button>
+            </form>
+            <div class="dropdown filter-dd dd-right">
+                <button class="dropdown-toggle" type="button" id="ddShop"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span>ทั้งหมด</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" aria-labelledby="ddShop">
+                    <a class="dropdown-item" href="#" data-shop="all">ทั้งหมด</a>
+                    <a class="dropdown-item" href="#" data-shop="shop">มีหน้าร้าน</a>
+                    <a class="dropdown-item" href="#" data-shop="no-shop">ไม่มีหน้าร้าน</a>
+                </div>
+            </div>
+            <div class="dropdown filter-dd">
+                <button class="dropdown-toggle" type="button" id="ddService"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span>ทั้งหมด</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" aria-labelledby="ddService">
+                    <a class="dropdown-item" href="#" data-service="all">ทั้งหมด</a>
+                    <a class="dropdown-item" href="#" data-service="repair">ช่างซ่อม</a>
+                    <a class="dropdown-item" href="#" data-service="tirerepair">ช่างปะยาง</a>
+                    <a class="dropdown-item" href="#" data-service="carwash">ล้างภายใน/ภายนอก</a>
+                    <a class="dropdown-item" href="#" data-service="oilchange">ถ่ายน้ำมันเครื่อง</a>
+                    <a class="dropdown-item" href="#" data-service="battery">เปลี่ยนแบต</a>
+                    <a class="dropdown-item" href="#" data-service="carcheck">เช็คสภาพรถ</a>
+                </div>
+            </div>
+        </div>
+        <div class="mechanic-container">
+            <div class="mechanic" data-lat="13.9514936" data-lng="100.8213272">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/peerayut.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">5 (689)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="peerayut">Peerayut Seaso</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ภีรายุทธ เสโส</span></p>
+                <p class="mechanic-info">เบอร์โทร : 080-969-6085</p>
+                <p class="mechanic-info">Line : @TSTEPS&TRSDYNO</p>
+                <p class="mechanic-info">Facebook : TSTEPS & TRS DYNO</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 10 ลำลูกกา</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.988959" data-lng="100.610101">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/narin.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (114)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="narin">Narin Jaidee</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">นรินทร์ ใจดี</span></p>
+                <p class="mechanic-info">เบอร์โทร : 089-456-1237</p>
+                <p class="mechanic-info">Line : @narin.garage</p>
+                <p class="mechanic-info">Facebook : Narin Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 4 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.990216" data-lng="100.610894">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/chaiwat.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (154)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="chaiwat">Chaiwat Srisuk</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ชัยวัฒน์ ศรีสุข</span></p>
+                <p class="mechanic-info">เบอร์โทร : 086-321-9874</p>
+                <p class="mechanic-info">Line : @chaiwat.auto</p>
+                <p class="mechanic-info">Facebook : Chaiwat Auto Service</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 7 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.990251" data-lng="100.611488">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/krit.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (255)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="krit">Krit Phromma</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">กฤษณะ พรหมมา</span></p>
+                <p class="mechanic-info">เบอร์โทร : 092-345-7812</p>
+                <p class="mechanic-info">Line : @krit.mechanic</p>
+                <p class="mechanic-info">Facebook : Krit Mechanic</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 2 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992055" data-lng="100.612450">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/thanawat.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">5 (215)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="thanawat">Thanawat Khongdee</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ธนวัฒน์ คงดี</span></p>
+                <p class="mechanic-info">เบอร์โทร : 094-678-2345</p>
+                <p class="mechanic-info">Line : @thanawat.garage</p>
+                <p class="mechanic-info">Facebook : Thanawat Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 9 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="14.039562" data-lng="100.783864">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/anan.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (400)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="anan">Anan Mankhong</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">อนันต์ มั่นคง</span></p>
+                <p class="mechanic-info">เบอร์โทร : 082-567-3491</p>
+                <p class="mechanic-info">Line : @anan.autocare</p>
+                <p class="mechanic-info">Facebook : Anan Auto Care</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 5 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.991790" data-lng="100.637624">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/pongsak.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                       
+                    </span>
+                    <span class="rating-text">3 (260)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="pongsak">Pongsak Boonmee</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">พงศักดิ์ บุญมี</span></p>
+                <p class="mechanic-info">เบอร์โทร : 088-741-2365</p>
+                <p class="mechanic-info">Line : @pongsakservice</p>
+                <p class="mechanic-info">Facebook : Pongsak Auto Service</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 10 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.991766" data-lng="100.639445">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/sittichai.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">5 (120)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="sittichai">Sittichai Kaewsa</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">สิทธิชัย แก้วใส</span></p>
+                <p class="mechanic-info">เบอร์โทร : 091-283-6457</p>
+                <p class="mechanic-info">Line : @sittichai.fix</p>
+                <p class="mechanic-info">Facebook : Sittichai Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 3 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.991790" data-lng="100.640754">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/wichai.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">5 (75)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="wichai">Wichai Thongdee</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">วิชัย ทองดี</span></p>
+                <p class="mechanic-info">เบอร์โทร : 083-654-2198</p>
+                <p class="mechanic-info">Line : @wichai.auto</p>
+                <p class="mechanic-info">Facebook : Wichai Auto Service</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 6 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992113" data-lng="100.642031">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/supachai.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (299)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="supachai">Supachai Rungrueang</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ศุภชัย รุ่งเรือง</span></p>
+                <p class="mechanic-info">เบอร์โทร : 097-325-6841</p>
+                <p class="mechanic-info">Line : @supachaifix</p>
+                <p class="mechanic-info">Facebook : Supachai Fix Car</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 8 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992256" data-lng="100.643852">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/teerawat.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (140)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="teerawat">Teerawat Saengthong</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ธีรวัฒน์ แสงทอง</span></p>
+                <p class="mechanic-info">เบอร์โทร : 085-912-3476</p>
+                <p class="mechanic-info">Line : @teerawat.garage</p>
+                <p class="mechanic-info">Facebook : Teerawat Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 1 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992753" data-lng="100.645104">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/phichit.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (145)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="phichit">Phichit Saichon</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">พิชิต สายชล</span></p>
+                <p class="mechanic-info">เบอร์โทร : 080-456-9321</p>
+                <p class="mechanic-info">Line : @phichitauto</p>
+                <p class="mechanic-info">Facebook : Phichit Auto Care</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 5 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992831" data-lng="100.647031">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/kittipong.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (100)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="kittipong">Kittipong Wattana</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">กิตติพงษ์ วัฒนา</span></p>
+                <p class="mechanic-info">เบอร์โทร : 099-214-7638</p>
+                <p class="mechanic-info">Line : @kittipongservice</p>
+                <p class="mechanic-info">Facebook : Kittipong Service</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 8 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992863" data-lng="100.647853">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/weerachai.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (450)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="weerachai">Weerachai Sukjai</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">วีระชัย สุขใจ</span></p>
+                <p class="mechanic-info">เบอร์โทร : 087-563-2189</p>
+                <p class="mechanic-info">Line : @weerachai.fix</p>
+                <p class="mechanic-info">Facebook : Weerachai Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 2 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.992350" data-lng="100.649056">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/narong.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">4 (200)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="narong">Narong Dechdee</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ณรงค์ เดชดี</span></p>
+                <p class="mechanic-info">เบอร์โทร : 093-781-4526</p>
+                <p class="mechanic-info">Line : @narongauto</p>
+                <p class="mechanic-info">Facebook : Narong Auto Service</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 10 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.996614" data-lng="100.665929">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/apichat.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (140)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="apichat">Apichat Phunphon</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">อภิชาติ พูลผล</span></p>
+                <p class="mechanic-info">เบอร์โทร : 081-693-5274</p>
+                <p class="mechanic-info">Line : @apichatfix</p>
+                <p class="mechanic-info">Facebook : Apichat Fix Car</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 4 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.998445" data-lng="100.677365">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/manop.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (194)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="manop">Manop Jaikla</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">มานพ ใจกล้า</span></p>
+                <p class="mechanic-info">เบอร์โทร : 086-742-3159</p>
+                <p class="mechanic-info">Line : @manopgarage</p>
+                <p class="mechanic-info">Facebook : Manop Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 7 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.999990" data-lng="100.682237">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/chanon.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (125)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="chanon">Chanon Kasemsuk</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ชานนท์ เกษมสุข</span></p>
+                <p class="mechanic-info">เบอร์โทร : 095-318-6274</p>
+                <p class="mechanic-info">Line : @chanonautocare</p>
+                <p class="mechanic-info">Facebook : Chanon Auto Care</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 3 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="14.000714" data-lng="100.686534">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/somchai.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (90)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="somchai">Somchai Rattanachai</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">สมชาย รัตนชัย</span></p>
+                <p class="mechanic-info">เบอร์โทร : 084-629-1735</p>
+                <p class="mechanic-info">Line : @somchaimechanic</p>
+                <p class="mechanic-info">Facebook : Somchai Mechanic</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 6 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="14.020852" data-lng="100.730438">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/pakorn.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">5 (250)</span>
+                    <span class="shop-badge" data-shop="no-shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="pakorn">Pakorn Charoensuk</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">ปกรณ์ เจริญสุข</span></p>
+                <p class="mechanic-info">เบอร์โทร : 090-527-4168</p>
+                <p class="mechanic-info">Line : @pakorn.garage</p>
+                <p class="mechanic-info">Facebook : Pakorn Garage</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 9 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="14.034984" data-lng="100.767961">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/prattanachai.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        
+                    </span>
+                    <span class="rating-text">3 (150)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="rattanachai">Rattanachai Boonsong</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">รัตนชัย บุญส่ง</span></p>
+                <p class="mechanic-info">เบอร์โทร : 098-346-7215</p>
+                <p class="mechanic-info">Line : @rattanachaiauto</p>
+                <p class="mechanic-info">Facebook : Rattanachai Auto Service</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 4 ธัญบุรี</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+            <!-- ------------------------------------------------- -->
+            <div class="mechanic" data-lat="13.951716" data-lng="100.821050">
+                <div class="mechanic-img">
+                    <img src="imgmechanic/jirawat.jpg" onerror="this.src='imgmechanic/error.png'" alt="">
+                    <i class="fa-regular fa-bookmark mechanic-bookmark"></i>
+                    <span class="mechanic-distance">ไม่พบข้อมูล</span>
+                </div>
+                <div class="mechanic-rating">
+                    <span class="stars">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </span>
+                    <span class="rating-text">4 (80)</span>
+                    <span class="shop-badge" data-shop="shop"></span>
+                </div>
+                <h3 class="mechanic-name" id="jirawat">Surakiart Boonrasri</h3>
+                <p class="mechanic-info">ชื่อ-นามสกุล :<span class="mechanic-name-th">จิรวัฒน์ พัฒนกิจ</span></p>
+                <p class="mechanic-info">เบอร์โทร : 091-504-6779</p>
+                <p class="mechanic-info">Line : @Surakiart</p>
+                <p class="mechanic-info">Facebook : Surakiart</p>
+                <p class="mechanic-info">ตำแหน่งร้าน : คลอง 10 ลำลูกกา</p>
+                <p class="mechanic-info">TAG : <span class="tag-mechanic"></span></p>
+                <button class="mechanic-btn">
+                    <i class="fa-solid fa-location-dot"></i> ตำแหน่งที่ตั้ง
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="loc-backdrop" id="locModal" role="dialog" aria-modal="true" aria-labelledby="locTitle">
+        <div class="loc-modal">
+            <div class="loc-head">
+                <span class="loc-head-icon">
+                    <img src="https://www.gstatic.com/images/branding/product/2x/maps_96in128dp.png" alt="">
+                </span>
+                <div>
+                    <div class="loc-title" id="locTitle">ตำแหน่งของฉัน</div>
+                    <div class="loc-sub">ลากหมุดหรือแตะบนแผนที่เพื่อปรับตำแหน่ง</div>
+                </div>
+                <button class="loc-close" id="locClose" type="button" aria-label="ปิด">&times;</button>
+            </div>
+            <div class="loc-map-wrap">
+                <div id="locMap"></div>
+                <div class="loc-map-msg" id="locMapMsg"></div>
+                <button class="loc-recenter" id="locRecenter" type="button" aria-label="กลับไปที่ตำแหน่งปัจจุบัน">
+                    <i class="fa-solid fa-crosshairs"></i>
+                </button>
+            </div>
+            <div class="loc-status" id="locStatus" aria-live="polite"></div>
+            <button class="loc-confirm" id="locConfirm" type="button" disabled>ยืนยันตำแหน่ง</button>
+        </div>
+    </div>
+</body>
+</html>

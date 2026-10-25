@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>FIXMYCAR ┃ WORK</title>
+        <link rel="icon" type="image/x-icon" href="img/logo.png">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="auth.js" defer></script>
+        <script src="work.js" defer></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <script src="https://kit.fontawesome.com/bb1b83cbaa.js" crossorigin="anonymous"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="work.css">
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-light p-2 site-navbar">
+            <a class="navbar-brand d-flex align-items-center" href="home.html">
+                <img src="img/logo.png" alt="">
+                <span class="ml-3">FIX MY CAR</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#siteNavigation"
+                    aria-controls="siteNavigation" aria-expanded="false" aria-label="เปิดเมนูนำทาง">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="siteNavigation">
+                <ul class="navbar-nav ml-auto align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="home.html"><i class="fa-solid fa-house mr-2"></i>หน้าหลัก</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="service.html"><i class="fa-solid fa-screwdriver-wrench mr-2"></i>เซอร์วิส</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="work.html"><i class="fa-solid fa-star-half-stroke mr-2"></i>ผลงาน</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="contactus.html"><i class="fa-solid fa-headset mr-2"></i>ติดต่อเรา</a>
+                    </li>
+                    <li id="adminNavItem" class="nav-item d-none">
+                        <a class="nav-link" href="dashboard.html"><i class="fa-solid fa-gauge-high mr-2"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item ml-lg-3">
+                        <a id="authButton" href="login.html" class="btn-login">เข้าสู่ระบบ</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <main class="work-page">
+            <section class="portfolio">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-eyebrow">ผลงานจริงจากทีมช่าง</span>
+                        <h1>
+                            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                            ตัวอย่างผลงานของช่างเรา
+                        </h1>
+                    </div>
+                    <p>ใส่ใจทุกขั้นตอน เพื่อให้รถของคุณกลับมาพร้อมใช้งาน</p>
+                </div>
+                <div class="portfolio-grid" aria-label="ผลงานก่อนและหลังซ่อม" tabindex="0">
+                    <p class="work-status" role="status">กำลังโหลดผลงาน...</p>
+                </div>
+                <p class="portfolio-scroll-hint"><i class="fa-solid fa-arrow-left-long"></i> ปัดหรือเลื่อนเพื่อดูผลงานเพิ่มเติม <i class="fa-solid fa-arrow-right-long"></i></p>
+            </section>
+            <section class="reviews">
+                <div class="reviews-heading section-heading">
+                    <div>
+                        <span class="section-eyebrow">เสียงตอบรับจากลูกค้า</span>
+                        <h2>
+                            <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+                            รีวิวจากผู้ใช้งาน
+                            <span class="review-count" id="reviewCount" aria-live="polite">กำลังโหลด...</span>
+                        </h2>
+                    </div>
+                    <button class="write-review-button" id="openReviewButton" type="button">
+                        <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
+                        เขียนรีวิว
+                    </button>
+                </div>
+                <div class="review-list" aria-live="polite">
+                    <p class="review-status">กำลังโหลดรีวิว...</p>
+                </div>
+                <p class="review-scroll-hint"><i class="fa-solid fa-arrow-left-long"></i> ปัดหรือเลื่อนเพื่อดูรีวิวเพิ่มเติม <i class="fa-solid fa-arrow-right-long"></i></p>
+            </section>
+        </main>
+        <div class="modal fade" id="reviewModal" tabindex="-1" role="dialog" aria-labelledby="reviewModalTitle" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <form id="reviewForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="reviewModalTitle">เขียนรีวิว</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="ปิด">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="reviewName">ชื่อ</label>
+                                <input class="form-control" id="reviewName" name="name" maxlength="35" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="reviewProfileImage">รูปโปรไฟล์ (ไม่บังคับ)</label>
+                                <input class="form-control-file" id="reviewProfileImage" name="profileImage" type="file" accept="image/jpeg,image/png,image/webp">
+                                <small class="form-text text-muted">รองรับ JPG, PNG หรือ WebP ขนาดไม่เกิน 2 MB; หากแก้ไขรีวิวและไม่เลือกรูปใหม่ จะใช้รูปเดิม</small>
+                                <img class="review-image-preview review-profile-preview d-none" id="reviewProfilePreview" alt="ตัวอย่างรูปโปรไฟล์">
+                            </div>
+                            <div class="form-group">
+                                <label for="reviewRating">คะแนน</label>
+                                <select class="form-control" id="reviewRating" name="rating" required>
+                                    <option value="5">5 ดาว</option>
+                                    <option value="4">4 ดาว</option>
+                                    <option value="3">3 ดาว</option>
+                                    <option value="2">2 ดาว</option>
+                                    <option value="1">1 ดาว</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reviewCategory">หมวดหมู่บริการ (ไม่บังคับ)</label>
+                                <select class="form-control" id="reviewCategory" name="category">
+                                    <option value="">ไม่ระบุ</option>
+                                    <option value="repair">ช่างซ่อม</option>
+                                    <option value="tirerepair">ช่างปะยาง</option>
+                                    <option value="carwash">ล้างภายใน/ภายนอก</option>
+                                    <option value="oilchange">ถ่ายน้ำมันเครื่อง</option>
+                                    <option value="battery">เปลี่ยนแบต</option>
+                                    <option value="carcheck">เช็คสภาพรถ</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label for="reviewText">ความคิดเห็น</label>
+                                <textarea class="form-control" id="reviewText" name="review" rows="4" maxlength="200" required></textarea>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label for="reviewPhoto">รูปประกอบรีวิว (ไม่บังคับ)</label>
+                                <input class="form-control-file" id="reviewPhoto" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+                                <small class="form-text text-muted">รองรับ JPG, PNG หรือ WebP ขนาดไม่เกิน 2 MB; หากแก้ไขรีวิวและไม่เลือกรูปใหม่ จะใช้รูปเดิม</small>
+                                <img class="review-image-preview review-photo-preview d-none" id="reviewPhotoPreview" alt="ตัวอย่างรูปประกอบรีวิว">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="write-review-button">ส่งรีวิว</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

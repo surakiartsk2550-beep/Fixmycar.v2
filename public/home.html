@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FIXMYCAR ┃ HOME</title>
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auth.js" defer></script>
+    <script src="home.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://kit.fontawesome.com/bb1b83cbaa.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="home.css">
+    <script>
+    $(function() {
+        var idx = $(this).find('.active').index();
+        //document.title = idx;
+        $('#bsCarousel').on('slide.bs.carousel', function(e) {
+            idx = $(e.relatedTarget).index();
+            //document.title = idx;
+        })
+    });
+
+</script>
+
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light p-2 site-navbar">
+        <a class="navbar-brand d-flex align-items-center" href="home.html">
+            <img src="img/logo.png" alt="">
+            <span class="ml-3">FIX MY CAR</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#siteNavigation"
+                aria-controls="siteNavigation" aria-expanded="false" aria-label="เปิดเมนูนำทาง">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="siteNavigation">
+            <ul class="navbar-nav ml-auto align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link active" href="home.html"><i class="fa-solid fa-house mr-2"></i>หน้าหลัก</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="service.html"><i class="fa-solid fa-screwdriver-wrench mr-2"></i>เซอร์วิส</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="work.html"><i class="fa-solid fa-star-half-stroke mr-2"></i>ผลงาน</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contactus.html"><i class="fa-solid fa-headset mr-2"></i>ติดต่อเรา</a>
+                </li>
+                <li id="adminNavItem" class="nav-item d-none">
+                    <a class="nav-link" href="dashboard.html"><i class="fa-solid fa-gauge-high mr-2"></i>Dashboard</a>
+                </li>
+                <li class="nav-item ml-lg-3">
+                    <a id="authButton" href="login.html" class="btn-login">เข้าสู่ระบบ</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="bsCarousel" class="carousel slide" data-ride="carousel">
+        <ol class="carousel-indicators">
+            <li data-target="#bsCarousel" data-slide-to="0" class="active"></li>
+            <li data-target="#bsCarousel" data-slide-to="1"></li>
+            <li data-target="#bsCarousel" data-slide-to="2"></li>
+        </ol>
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img class="d-block" src="img/banner-1.jpg" alt="Second slide">
+            </div>
+            <div class="carousel-item">
+                <img class="d-block" src="img/banner-2.png" alt="Second slide">
+            </div>
+            <div class="carousel-item">
+                <img class="d-block" src="img/banner-3.jpg" alt="Third slide">
+            </div>
+        </div>
+        <a class="carousel-control-next" href="#bsCarousel" data-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </a>
+        <a class="carousel-control-prev" href="#bsCarousel" data-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </a>
+    </div>
+    <div class="service-container container-fluid">
+        <div class="row align-items-stretch">
+            <div class="col-lg-7 col-md-12 mb-5 mb-lg-0">
+                <div class="service-box-large">
+                    <div class="row">
+                        <div class="col-md-6 mb-4 mb-md-0 border-divider">
+                            <div class="service-header">
+                                <h3>บริการของเรา</h3>
+                                <p>บริการเรียกช่างซ่อมนอกสถานที่ ช่วยแก้ไขปัญหาเบื้องต้น<br>พร้อมบริการถึงที่ สะดวก รวดเร็ว และปลอดภัย</p>
+                            </div>
+                            <div class="service-body">
+                                <h4>วิธีใช้งาน</h4>
+                                <ol>
+                                    <li>ระบุตำแหน่ง</li>
+                                    <li>เลือกช่างและบริการที่ต้องการ</li>
+                                    <li>ตรวจสอบตำแหน่งและข้อมูลของช่าง</li>
+                                    <li>ติดต่อช่างโดยตรงเพื่อแจ้งปัญหา</li>
+                                    <li>นัดหมายและรอช่างเดินทางไปให้บริการ</li>
+                                </ol>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="service-header">
+                                <h3>บริการอื่นๆ ของเรา</h3>
+                                <p>บริการตรวจเช็กสภาพรถยนต์และเปลี่ยนถ่ายน้ำมันเครื่อง<br>โดยทีมช่างผู้เชี่ยวชาญ พร้อมเครื่องมือที่ทันสมัย</p>
+                            </div>
+                            <div class="service-body">
+                                <h4>ข้อดีของบริการ</h4>
+                                <ol>
+                                    <li>ช่างประเมินราคาล่วงหน้าชัดเจน</li>
+                                    <li>ใช้อะไหล่แท้มาตรฐานศูนย์บริการ</li>
+                                    <li>รับประกันงานซ่อมนาน 30 วัน</li>
+                                    <li>ให้บริการรวดเร็วภายใน 1 ชั่วโมง</li>
+                                    <li>มีบริการช่วยเหลือฉุกเฉินตลอด 24 ชั่วโมง</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 col-md-12">
+                <div class="service-image-box">
+                    <a href="service.html">
+                        <img src="img/clickservice.jpg" alt="Service Image">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
