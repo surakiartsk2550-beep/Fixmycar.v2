@@ -1,16 +1,39 @@
-# FIXMYCAR Twilio OTP
+# FIXMYCAR
 
-1. เปิด PowerShell ในโฟลเดอร์นี้
-2. รัน `npm install`
-3. รัน `npm start`
-4. เปิด http://localhost:3000/home.html (หน้าแรกเข้าใช้งานได้โดยไม่ต้องล็อกอิน)
+## เปิดเว็บบน Replit
+
+1. Import รีโพซิทอรี GitHub `surakiartsk2550-beep/Fixmycar.v2` เข้า Replit
+2. ในแท็บ **Secrets** เพิ่มค่าที่ต้องใช้ โดยไม่ต้องอัปโหลดไฟล์ `.env`
+   - `GOOGLE_MAPS_API_KEY` — Google Maps JavaScript API key; จำกัด key ด้วย HTTP referrer ของโดเมน Replit และเปิดใช้เฉพาะ Maps JavaScript API
+   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` และ `TWILIO_VERIFY_SERVICE_SID` — จำเป็นเมื่อต้องการส่ง SMS OTP จริง
+   - `ADMIN_PHONES` — เบอร์โทร Admin คั่นหลายเบอร์ด้วยเครื่องหมายจุลภาค
+3. กด **Run**; Replit จะใช้คำสั่ง `npm start` จาก `.replit` และเปิดเว็บผ่านพอร์ตที่กำหนดใน `PORT` ให้อัตโนมัติ
+4. เปิดหน้าแรก `/home.html` หรือหน้าเข้าสู่ระบบ `/login.html`
+
+หน้าแรกและหน้าอื่นที่ไม่ต้องล็อกอินเปิดดูได้โดยไม่ตั้งค่า OTP แต่การล็อกอินต้องตั้งค่า Twilio หรือเปิดโหมด OTP ทดสอบสำหรับงานพัฒนาเท่านั้น
+
+แอปเก็บฐานข้อมูล SQLite ที่ `fixmycar.db` และรูปอัปโหลดใน `public/uploads/` บน filesystem ของแอป หากใช้ deployment ที่ filesystem ไม่ถาวร ข้อมูลเหล่านี้อาจหายเมื่อ deploy ใหม่ ควรใช้ persistent storage หรือย้ายไปใช้ฐานข้อมูลและ object storage แบบถาวรก่อนใช้งานจริง
+
+## รันในเครื่อง
+
+1. ติดตั้ง Node.js 20 ขึ้นไป
+2. คัดลอก `.env.example` เป็น `.env` แล้วกำหนดค่าที่ต้องใช้
+3. รัน `npm install` และ `npm start`
+4. เปิด http://localhost:3000/home.html
 
 ## ทดสอบล็อกอินโดยไม่ส่ง SMS
 
-เพิ่มค่าจากไฟล์ `.env.example` ลงใน `.env` ที่มีอยู่ แล้วรัน `npm start`
+สำหรับงานพัฒนาในเครื่อง ให้ตั้งค่าใน `.env` ดังนี้ แล้วรัน `npm start`:
+
+```env
+NODE_ENV=development
+DEV_OTP_ENABLED=true
+DEV_OTP_CREDENTIALS=0000000000:123456,123-456-7890:000000
+```
+
 กรอกเบอร์ทดสอบ `0000000000` และ OTP `123456` หรือเบอร์ `123-456-7890` และ OTP `000000` หน้าเว็บจะไม่ส่ง SMS จริง
 
-โหมดนี้ใช้ได้เฉพาะเมื่อ `DEV_OTP_ENABLED=true` `DEV_OTP_ENABLED=false` และ `NODE_ENV` ไม่ใช่ `production`
+โหมดนี้ใช้ได้เฉพาะเมื่อ `DEV_OTP_ENABLED=true` และ `NODE_ENV` ไม่ใช่ `production`
 กำหนดคู่เบอร์และ OTP ใน `DEV_OTP_CREDENTIALS` โดยคั่นแต่ละคู่ด้วยจุลภาค เช่น `0000000000:123456,123-456-7890:000000` ระบบรับเฉพาะเบอร์ที่กำหนดไว้ OTP ใช้ได้ครั้งเดียว หมดอายุใน 5 นาที และล็อกหลังกรอกผิด 5 ครั้ง
 ห้ามใช้หรือเปิดโหมดนี้บน production
 
@@ -31,8 +54,7 @@
 ตัวอย่างผลงานเดิมจะถูกนำเข้า SQLite อัตโนมัติเมื่อเริ่มระบบครั้งแรก และ Manage Work จัดการข้อมูลที่แสดงในหน้า Work
 หน้า Work โหลดรีวิวจาก SQLite และให้เฉพาะผู้ใช้ที่เข้าสู่ระบบแล้วส่งรีวิวได้ ผู้เขียนสามารถแก้ไขหรือลบรีวิวของตนเองได้ โดยเลือกรูปใหม่หรือคงรูปเดิมไว้ก็ได้ ส่วนรีวิวที่มีอยู่ก่อนเพิ่มการผูกบัญชีเจ้าของจะไม่สามารถจัดการผ่านบัญชีผู้ใช้ได้ เลือกหมวดหมู่บริการแบบไม่บังคับและแนบรูปโปรไฟล์กับรูปประกอบรีวิวได้อย่างละ 1 รูป รองรับ JPG, PNG และ WebP ขนาดไม่เกิน 2 MB ต่อรูป
 
-Google Maps API key ตั้งค่าในตัวแปร `GOOGLE_MAPS_API_KEY` ใน `public/service.html`
-ควรจำกัด key ด้วย HTTP referrer และเปิดใช้เฉพาะ Maps JavaScript API
+Google Maps API key ตั้งผ่าน environment variable `GOOGLE_MAPS_API_KEY` (ใน Replit ให้ใช้ Secrets) เซิร์ฟเวอร์ส่ง key ให้หน้าเว็บเมื่อจำเป็น เนื่องจาก key ถูกใช้โดยเบราว์เซอร์ จึงต้องจำกัด key ด้วย HTTP referrer และเปิดใช้เฉพาะ Maps JavaScript API
 
 ห้ามเผยแพร่ไฟล์ `.env` และควรเก็บ Twilio Auth Token ไว้เป็นความลับ
 หาก Auth Token เคยถูกเปิดเผย ให้หมุนเวียน (Rotate) ใน Twilio Console ทันที

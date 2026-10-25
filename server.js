@@ -11,6 +11,7 @@ const twilio = require('twilio');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || '0.0.0.0';
 const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 const devOtpRequested = process.env.DEV_OTP_ENABLED === 'true';
 const devOtpEnabled = devOtpRequested && !isProduction;
@@ -1357,6 +1358,11 @@ app.post('/api/auth/logout', (req, res) => {
     res.json({ ok: true });
 });
 
+app.get('/api/config', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '' });
+});
+
 app.get('/dashboard.html', (req, res) => {
     const user = getCurrentUser(req);
 
@@ -1373,6 +1379,6 @@ app.get('/dashboard.html', (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.listen(PORT, () => {
-    console.log(`FIXMYCAR login server running at http://localhost:${PORT}/home.html ✅Successful`);
+app.listen(PORT, HOST, () => {
+    console.log(`FIXMYCAR login server running at http://${HOST}:${PORT}/home.html ✅Successful`);
 });
